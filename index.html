@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -99,6 +100,30 @@
   .wrong-item .wi-stmt{color:var(--text); line-height:1.5}
   .empty{text-align:center; padding:50px 0; color:var(--text-2); font-size:14px}
   footer{text-align:center; margin-top:30px; font-size:11.5px; color:var(--text-muted)}
+
+  .tabs{display:flex; gap:6px; margin-bottom:18px; border-bottom:1px solid var(--border)}
+  .tab-btn{
+    flex:1; padding:11px 8px; font-size:13.5px; font-weight:600; text-align:center;
+    background:none; border:none; border-bottom:2.5px solid transparent; color:var(--text-muted); cursor:pointer;
+  }
+  .tab-btn.active{color:var(--navy); border-bottom-color:var(--navy)}
+  .section-label{font-size:13px; font-weight:700; color:#fff; background:var(--navy); border-radius:8px; padding:7px 12px; margin:22px 0 12px}
+  .section-label:first-child{margin-top:0}
+  .case-card{background:var(--card); border:1px solid var(--border); border-radius:12px; padding:16px 18px; margin-bottom:12px}
+  .case-head{display:flex; align-items:baseline; gap:8px; margin-bottom:6px; flex-wrap:wrap}
+  .case-num{font-size:12px; font-weight:700; color:var(--navy); background:var(--navy-light); border-radius:6px; padding:1px 7px}
+  .case-name{font-size:14.5px; font-weight:700; color:var(--text)}
+  .case-cite{font-size:11.5px; color:var(--text-muted)}
+  .case-facts{font-size:13.5px; color:var(--text-2); margin-bottom:8px; line-height:1.6}
+  .case-result{display:inline-block; font-size:12.5px; font-weight:700; padding:2px 9px; border-radius:20px; margin-bottom:8px}
+  .case-result.pos{background:var(--green-bg); color:var(--green-text)}
+  .case-result.neg{background:var(--red-bg); color:var(--red-text)}
+  .case-tag{display:inline-block; font-size:10.5px; font-weight:700; background:var(--amber-bg); color:var(--amber-text); border-radius:20px; padding:1px 8px; margin-left:6px}
+  .case-reason{font-size:13px; color:var(--text); line-height:1.65; margin-bottom:8px}
+  .case-probs{font-size:11.5px; color:var(--text-muted)}
+  .note-box{background:var(--navy-light); border-radius:12px; padding:16px 18px; margin-top:18px; font-size:13px; line-height:1.7; color:var(--text)}
+  .note-box h3{font-size:13.5px; color:var(--navy); margin:0 0 8px}
+  .note-box b{color:var(--navy)}
 </style>
 </head>
 <body>
@@ -108,27 +133,36 @@
     <p>갓대환 형법 기출 1200제 제5장 6·7절 기준 · 총 80문항</p>
   </header>
 
-  <div class="top-bar">
-    <div class="score-pill" id="score-pill">0 / 0</div>
+  <div class="tabs">
+    <button class="tab-btn active" id="tab-quiz" onclick="switchTab('quiz')">O/X 퀴즈</button>
+    <button class="tab-btn" id="tab-cases" onclick="switchTab('cases')">리딩케이스 19선</button>
   </div>
-  <div class="filters">
-    <select id="cat-filter"><option value="">모든 카테고리</option></select>
-    <select id="diff-filter">
-      <option value="">모든 난이도</option>
-      <option value="essential">★ Essential</option>
-      <option value="core">★★ Core</option>
-      <option value="superlative">★★★ Superlative</option>
-    </select>
-    <select id="mode-filter">
-      <option value="all">전체 문항</option>
-      <option value="wrong">오답만</option>
-    </select>
+
+  <div id="quiz-view">
+    <div class="top-bar">
+      <div class="score-pill" id="score-pill">0 / 0</div>
+    </div>
+    <div class="filters">
+      <select id="cat-filter"><option value="">모든 카테고리</option></select>
+      <select id="diff-filter">
+        <option value="">모든 난이도</option>
+        <option value="essential">★ Essential</option>
+        <option value="core">★★ Core</option>
+        <option value="superlative">★★★ Superlative</option>
+      </select>
+      <select id="mode-filter">
+        <option value="all">전체 문항</option>
+        <option value="wrong">오답만</option>
+      </select>
+    </div>
+    <div class="progress-row">
+      <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
+      <div class="progress-label" id="progress-label">0 / 0</div>
+    </div>
+    <div id="quiz-area"></div>
   </div>
-  <div class="progress-row">
-    <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
-    <div class="progress-label" id="progress-label">0 / 0</div>
-  </div>
-  <div id="quiz-area"></div>
+
+  <div id="cases-view" style="display:none"></div>
 
   <footer>오답 기록은 이 브라우저에 자동 저장됩니다.</footer>
 </div>
@@ -216,6 +250,69 @@ const QUIZZES=[
 {id:79,category:"배임수재",difficulty:"core",statement:"여론 형성에 상당한 영향을 미치는 언론사 논설주간이 개인적 친분관계나 거래관계가 없던 회사의 대표이사로부터 회사에 대한 우호적인 여론 형성에 도움을 달라는 취지로 수천만 원 상당의 유럽 여행 비용을 제공받은 경우, 이는 배임수재죄에서 말하는 '부정한 청탁'에 해당한다.",answer:true,explanation:"언론의 공정성·객관성, 언론인의 청렴성에 대한 공공의 신뢰를 저버리는 것 → 사회상규 또는 신의성실의 원칙에 반하는 부정한 청탁.",caseRef:"대법원 2024. 3. 12. 2020도1263 (조선일보 주필 사건)",probs:[297]},
 {id:80,category:"배임수재",difficulty:"superlative",statement:"학교법인의 이사장이 학교법인 운영권을 양도하고 양수인으로부터 양수인측을 학교법인의 임원으로 선임해주는 대가로 양도대금을 받기로 하는 내용의 청탁을 받았다 하더라도, 특별한 사정이 없는 한 그 청탁을 배임수재죄의 구성요건인 '부정한 청탁'에 해당한다고 할 수 없다.",answer:true,explanation:"청탁의 내용이 학교법인의 설립 목적과 다른 목적으로 기본재산을 매수·사용하려는 것으로서 학교법인 존립에 중대한 위협을 초래할 것임이 명백하다는 등의 특별한 사정이 없는 한, 사회상규·신의성실 원칙에 반한다고 볼 수 없음.",caseRef:"대법원 2014. 1. 23. 2013도11735 (석정학원 양도사건)",probs:[298]}
 ];
+
+const LEADING_CASES=[
+{group:"횡령죄 리딩케이스",items:[
+{num:1,name:"양자간 명의신탁 사건",cite:"2021. 2. 18. 2016도18761 전합",facts:"원소유자(신탁자)가 자기 부동산의 등기명의만 수탁자 앞으로 이전 → 수탁자가 부동산을 임의처분",result:"횡령 X",pos:false,tag:"판례변경",reason:"부동산실명법 위반의 위탁관계는 '형법상 보호할 만한 가치 있는 신임'이 아님 → 수탁자는 '타인의 재물을 보관하는 자' 아님",probs:[255,256,261,285,292]},
+{num:2,name:"중간생략등기형 명의신탁 사건 Ⅰ",cite:"2016. 5. 19. 2014도6992 전합",facts:"신탁자가 부동산을 매수하면서 매도인에게서 바로 수탁자 명의로 등기 이전 → 수탁자가 임의처분",result:"횡령 X",pos:false,reason:"수탁자 명의 등기는 무효, 소유권은 여전히 매도인에게 → 수탁자는 신탁자 재물의 보관자 아님",probs:[257,264,276]},
+{num:3,name:"계약명의신탁 사건",cite:"매도인 선의 2008도7451 / 악의 2010도10515",facts:"수탁자가 아예 매매계약의 당사자로 나서서 부동산을 매수 → 임의처분",result:"횡령 X (배임도 X)",pos:false,reason:"매도인 선의 시 수탁자가 유효하게 소유권 취득 / 악의 시 소유권은 매도인 보유 — 어느 쪽이든 수탁자는 신탁자 물건의 보관자 아님",probs:[250,257,264,265,288]},
+{num:4,name:"임차보증금 양도사건",cite:"2022. 6. 23. 2017도3829 전합",facts:"임차인이 보증금반환채권을 B에게 양도하고도 통지 전에 자기가 받아서 씀",result:"횡령 X",pos:false,tag:"판례변경",reason:"수령한 금전의 소유권은 채권양도인에게 귀속, 양수인을 위한 보관자 지위·신임관계 없음",probs:[240,283,286,289,297]},
+{num:5,name:"지입차량 무단처분 사건",cite:"2015. 6. 25. 2015도1944 전합",facts:"등록명의자가 아닌 사람이 보관 중인 타인 소유 차량을 사실상 처분",result:"횡령 O",pos:true,reason:"등록이 필요한 차량의 보관자는 등록명의 불요 — '제3자에게 법률상 유효하게 처분할 수 있는 권능' 기준",probs:[243,246,249,252,255,256,257,291]},
+{num:6,name:"300만달러 송금착오 사건",cite:"2010. 12. 9. 2010도891",facts:"아무 거래관계 없는 돈이 착오로 내 계좌에 입금 → 임의로 인출·소비",result:"횡령 O",pos:true,reason:"예금주와 송금인 사이에 신의칙상 보관관계 성립 (거래관계 없어도 마찬가지) — 7번과 짝",probs:[241,257]},
+{num:7,name:"착오송금 임의상계 사건",cite:"2022. 12. 29. 2021도2088",facts:"착오 입금된 돈에서 자기 채권액만 상계하고 반환 거부",result:"횡령 X",pos:false,reason:"반환거부의 이유·주관적 의사 종합 시 불법영득의사를 단정하기 어려움 — 6번과 짝",probs:[295]},
+{num:8,name:"보이스피싱 사건 Ⅲ",cite:"2018. 7. 19. 2017도17494 전합",facts:"계좌명의인이 자기 계좌로 송금된 보이스피싱 피해금을 인출·소비",result:"공범 아니면 O / 공범이면 X",pos:true,reason:"공범 아니면 피해자를 위해 보관하는 지위 인정 / 공범이면 사기 실행행위의 연장일 뿐",probs:[245,248,256,258,292]},
+{num:9,name:"인천 학익동 포주사건",cite:"1999. 9. 17. 98도2036",facts:"포주가 윤락녀 화대를 보관하다가(분배 약정) 임의소비",result:"횡령 O",pos:true,reason:"포주의 불법성이 윤락녀보다 현저히 큼 → 화대 소유권은 여전히 윤락녀에게 — 10번과 짝",probs:[242,287]},
+{num:10,name:"범죄수익 무기명 CD 사건 / 조합장 뇌물 임의소비 사건",cite:"2017도9254 / 86도628",facts:"범죄수익 은닉을 위해 교부받은 CD를 소비 / 뇌물 전달용 돈을 소비",result:"횡령 X",pos:false,reason:"불법원인급여 → 소유권이 교부받은 자에게 귀속 — 9번과 짝",probs:[248,252,262,263,286]}
+]},
+{group:"배임죄 리딩케이스",items:[
+{num:11,name:"크러셔 양도담보 사건",cite:"2020. 2. 20. 2019도9756 전합",facts:"동산 양도담보 설정자인 채무자가 점유개정으로 보관하다 담보물을 제3자에게 매각",result:"배임 X",pos:false,tag:"판례변경",reason:"담보가치 유지·보전의무는 '자기의 사무' — 채무자는 타인의 사무 처리자 아님 ※ 채권자가 보관 중 처분하면 횡령 O",probs:[269,275,277,279,291]},
+{num:12,name:"레이저가공기 동산담보 사건",cite:"2020. 8. 27. 2019도14770 전합",facts:"동산채권담보법상 담보 제공자가 담보물을 타에 처분·멸실·훼손",result:"배임 X",pos:false,reason:"11번과 동일 법리를 동산채권담보법상 담보로 확장",probs:[270,276,286,294]},
+{num:13,name:"아파트 이중저당 사건",cite:"2020. 6. 18. 2019도14340 전합",facts:"저당권 설정해주기로 약정한 채무자가 제3자에 먼저 저당권 설정",result:"배임 X",pos:false,tag:"판례변경",reason:"저당권설정의무 이행도 채무자 자신의 사무 — 통상의 이익대립관계를 넘는 신임관계 아님",probs:[270,275,276,279,289,292]},
+{num:14,name:"인쇄기 이중매매 사건",cite:"2011. 1. 20. 2008도10479 전합",facts:"동산(인쇄기) 매도인이 계약금·중도금 수령 후 목적물을 채권자에게 대물변제로 양도",result:"배임 X",pos:false,reason:"동산 매도인은 매수인에 대하여 그의 사무를 처리하는 지위에 있지 않음 — 15번과 짝",probs:[273,280,288]},
+{num:15,name:"목장 증여 사건 / 상가 이중매매 사건",cite:"2016도19308 / 2017도4027 전합",facts:"부동산 매도인(증여자)이 중도금 수령 후(서면 증여 후) 제3자에게 처분·등기",result:"배임 O",pos:true,reason:"중도금 지급 단계부터 매수인의 재산보전에 협력할 신임관계 성립 — 14번과 짝",probs:[270,275,278,279,294]},
+{num:16,name:"29억 약속어음 사건",cite:"2017. 7. 20. 2014도1104 전합",facts:"대표이사가 대표권을 남용하여 회사 명의의 무효인 약속어음 발행",result:"유통 시 기수 / 미유통 미수",pos:true,reason:"경제적 관점에서 실제 손해·구체적 위험 발생 여부로 판단",probs:[270,273,274,284,289,294]},
+{num:17,name:"주식 이중양도 사건",cite:"2020. 6. 4. 2015도6057",facts:"주권발행 전 주식의 양도인이 대항요건을 갖춰주지 않고 타에 처분",result:"배임 X",pos:false,reason:"대항요건을 갖춰줄 의무는 자기의 사무 — 양도인은 타인사무 처리자 아님",probs:[274]},
+{num:18,name:"골프장회원권 명의변경× 사건",cite:"1999. 1. 29. 98도4182",facts:"타인사무 처리자가 부정한 청탁을 받고 재산상 이익을 단순히 요구·약속만 한 상태",result:"배임수재 X",pos:false,reason:"'재산상 이익의 취득' = 현실적 취득만 의미 (요구·약속 불포함)",probs:[272,296,299]},
+{num:19,name:"할부매매 지입버스 사건",cite:"2024. 11. 14. 2024도13000",facts:"지입차주가 할부대금 미완납 상태 → 지입회사 운영자가 차량 관련 처분",result:"타인사무 처리자 X",pos:false,tag:"최신",reason:"할부대금 완납 전까지는 지입차량을 차주의 실질적 재산으로 보기 어려움",probs:[278,283,297]}
+]}
+];
+
+let casesRendered=false;
+function renderCases(){
+  if(casesRendered)return;
+  casesRendered=true;
+  let html='';
+  LEADING_CASES.forEach(g=>{
+    html+='<div class="section-label">'+g.group+'</div>';
+    g.items.forEach(c=>{
+      const tag=c.tag?'<span class="case-tag">'+c.tag+'</span>':'';
+      html+='<div class="case-card">'+
+        '<div class="case-head"><span class="case-num">#'+c.num+'</span><span class="case-name">'+c.name+'</span></div>'+
+        '<div class="case-cite">'+c.cite+'</div>'+
+        '<p class="case-facts" style="margin-top:8px">'+c.facts+'</p>'+
+        '<span class="case-result '+(c.pos?'pos':'neg')+'">'+c.result+'</span>'+tag+
+        '<p class="case-reason">'+c.reason+'</p>'+
+        '<p class="case-probs">관련 문제번호: '+c.probs.join(', ')+'</p>'+
+      '</div>';
+    });
+  });
+  html+='<div class="note-box"><h3>암기 포인트 — 반드시 짝으로 외울 것</h3>'+
+    '<p><b>6 ↔ 7</b> : 착오송금 단순 인출·소비는 횡령 O, 상계 의사 밝힌 정산·반환거부는 횡령 X</p>'+
+    '<p><b>9 ↔ 10</b> : 불법원인급여라도 급여자 불법성이 현저히 작으면(포주) 횡령 O / 뇌물 전달금·범죄수익 CD는 횡령 X</p>'+
+    '<p><b>14 ↔ 15</b> : 이중매매 — 동산은 배임 X, 부동산은 중도금 이후 배임 O (최다 대비축)</p>'+
+    '<p><b>11 관련 교차 함정</b> : 양도담보 설정자(채무자)의 처분은 배임 X이자 횡령 X, 반대로 채권자가 합의로 보관 중 처분하면 횡령 O — 주체가 바뀌면 결론이 바뀜</p>'+
+    '<p><b>1·2·3 명의신탁 3유형</b> : 현재 판례상 세 유형 모두 수탁자의 임의처분에 대해 횡령 X — "누가 소유자인가"만 다름</p>'+
+  '</div>';
+  document.getElementById('cases-view').innerHTML=html;
+}
+
+function switchTab(tab){
+  document.getElementById('tab-quiz').classList.toggle('active',tab==='quiz');
+  document.getElementById('tab-cases').classList.toggle('active',tab==='cases');
+  document.getElementById('quiz-view').style.display=tab==='quiz'?'':'none';
+  document.getElementById('cases-view').style.display=tab==='cases'?'':'none';
+  if(tab==='cases')renderCases();
+}
 
 const STORAGE_KEY='hoengbaeim_wrong_ids_v1';
 function loadWrongIds(){
