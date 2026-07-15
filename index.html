@@ -124,6 +124,28 @@
   .note-box{background:var(--navy-light); border-radius:12px; padding:16px 18px; margin-top:18px; font-size:13px; line-height:1.7; color:var(--text)}
   .note-box h3{font-size:13.5px; color:var(--navy); margin:0 0 8px}
   .note-box b{color:var(--navy)}
+
+  /* ─ 함정지문 훈련 ─ */
+  .blank{background:var(--amber-bg); color:var(--amber-text); border-radius:5px; padding:1px 8px; font-weight:700; letter-spacing:1px}
+  .blank.filled{background:var(--green-bg); color:var(--green-text); letter-spacing:0}
+  .choice-btn{
+    display:block; width:100%; text-align:left; padding:13px 15px; font-size:14px; line-height:1.55;
+    border-radius:10px; border:1.5px solid var(--border-strong); background:var(--bg); color:var(--text);
+    cursor:pointer; margin-bottom:10px; transition:all .15s;
+  }
+  .choice-btn:hover{border-color:var(--navy)}
+  .choice-btn:active{transform:scale(0.99)}
+  .choice-btn .cnum{font-weight:800; color:var(--navy); margin-right:8px}
+  .choice-btn.correct{background:var(--green-bg); border-color:var(--green-border); color:var(--green-text)}
+  .choice-btn.correct .cnum{color:var(--green-text)}
+  .choice-btn.selected-wrong{background:var(--red-bg); border-color:var(--red-border); color:var(--red-text)}
+  .choice-btn.selected-wrong .cnum{color:var(--red-text)}
+  .badge-trap{background:var(--red-bg); color:var(--red-text)}
+  .badge-src{background:var(--bg); color:var(--text-2); border:1px solid var(--border)}
+  .fb-row{margin-bottom:8px; font-size:13.5px; line-height:1.65}
+  .fb-label{display:block; font-weight:700; font-size:11.5px; color:var(--text-muted); letter-spacing:.3px; margin-bottom:1px}
+  .fb-intent{background:var(--navy-light); border-radius:8px; padding:9px 12px; margin-top:10px; font-size:13px; line-height:1.6}
+  .fb-intent .fb-label{color:var(--navy)}
 </style>
 </head>
 <body>
@@ -135,6 +157,7 @@
 
   <div class="tabs">
     <button class="tab-btn active" id="tab-quiz" onclick="switchTab('quiz')">O/X 퀴즈</button>
+    <button class="tab-btn" id="tab-trap" onclick="switchTab('trap')">함정지문 훈련</button>
     <button class="tab-btn" id="tab-cases" onclick="switchTab('cases')">리딩케이스</button>
   </div>
 
@@ -160,6 +183,24 @@
       <div class="progress-label" id="progress-label">0 / 0</div>
     </div>
     <div id="quiz-area"></div>
+  </div>
+
+  <div id="trap-view" style="display:none">
+    <div class="top-bar">
+      <div class="score-pill" id="t-score-pill">0 / 0</div>
+    </div>
+    <div class="filters">
+      <select id="t-type-filter"><option value="">모든 함정 유형</option></select>
+      <select id="t-mode-filter">
+        <option value="all">전체 문항</option>
+        <option value="wrong">오답만</option>
+      </select>
+    </div>
+    <div class="progress-row">
+      <div class="progress-bar"><div class="progress-fill" id="t-progress-fill" style="width:0%"></div></div>
+      <div class="progress-label" id="t-progress-label">0 / 0</div>
+    </div>
+    <div id="trap-area"></div>
   </div>
 
   <div id="cases-view" style="display:none"></div>
@@ -307,11 +348,12 @@ function renderCases(){
 }
 
 function switchTab(tab){
-  document.getElementById('tab-quiz').classList.toggle('active',tab==='quiz');
-  document.getElementById('tab-cases').classList.toggle('active',tab==='cases');
-  document.getElementById('quiz-view').style.display=tab==='quiz'?'':'none';
-  document.getElementById('cases-view').style.display=tab==='cases'?'':'none';
+  ['quiz','trap','cases'].forEach(t=>{
+    document.getElementById('tab-'+t).classList.toggle('active',tab===t);
+    document.getElementById(t+'-view').style.display=tab===t?'':'none';
+  });
   if(tab==='cases')renderCases();
+  if(tab==='trap'&&!trapStarted){trapStarted=true;tStart();}
 }
 
 const STORAGE_KEY='hoengbaeim_wrong_ids_v1';
@@ -410,6 +452,390 @@ function showResult(){
 
 ['cat-filter','diff-filter','mode-filter'].forEach(id=>document.getElementById(id).addEventListener('change',start));
 start();
+</script>
+<script>
+/* ══════════ 함정지문 훈련 — 횡령의 죄 [X]지문 41선 ══════════
+   각 문항: 출제자가 비튼 바로 그 지점을 빈칸으로. wrong=원문의 왜곡 표현 / right=판례 표현
+   보기 순서는 렌더링 시 무작위. 오답은 기존 오답노트(localStorage)와 같은 키에 통합("T" 접두 id) */
+const TRAP_QUIZZES=[
+{id:"T1",src:"240번 ③",exam:"24 경찰채용",type:"결론 뒤집기",
+ stem:"주주나 대표이사 또는 그에 준하여 회사 자금의 보관이나 운용에 관한 사실상의 사무를 처리하는 자가 회사 소유 재산을 제3자의 자금 조달을 위하여 담보로 제공하는 등 사적인 용도로 임의 처분한 경우, 그 처분에 관하여 주주총회나 이사회의 결의가 있었다면 횡령죄가 {{BLANK}}.",
+ wrong:"성립하지 않는다",right:"결의가 있었는지 여부와 관계없이 성립한다",
+ conclusion:"주식회사는 주주와 독립된 별개의 권리주체로서 그 이해가 반드시 일치하는 것은 아니므로, 주주총회나 이사회의 결의가 있었는지 여부와는 관계없이 횡령죄의 죄책을 면할 수 없다.",
+ basis:"대법원 2011. 3. 24. 2010도17396 (코디콤 사건)",srcProbs:[240,251],
+ related:"1인 회사에서 1인 주주가 동의한 경우에도 동일 — 법인격 독립의 원칙상 주주의 동의는 회사의 승낙이 아니다.",
+ intent:"「주주 전원이 동의했으면 회사가 동의한 것」이라는 직관을 노린 함정. 전제(별개의 권리주체)에서 오히려 유죄 결론이 도출된다."},
+{id:"T2",src:"241번 ③",exam:"16 법원9급",type:"사례 판단형",
+ stem:"회사에 대하여 개인적인 채권을 가지고 있는 대표이사 甲이 회사를 위하여 보관하고 있는 회사 소유의 금전으로 자신의 채권의 변제에 충당하는 행위는 횡령죄가 {{BLANK}}.",
+ wrong:"성립한다",right:"성립하지 않는다",
+ conclusion:"회사와 이사의 이해가 충돌하는 자기거래행위에 해당하지 않으므로, 이사회 승인 등 절차 없이 변제하였더라도 대표이사의 권한 내에서 한 회사 채무의 유효한 이행행위 → 불법영득의사가 인정되지 아니하여 횡령죄의 죄책을 물을 수 없다.",
+ basis:"대법원 2014. 2. 27. 2013도12155 (최태원 SK그룹회장 사건)",srcProbs:[241],
+ related:"환전 부탁과 함께 교부받은 돈을 자신의 채권에 임의로 상계충당 → 위탁 취지에 반하여 횡령죄 성립(97도1520). 정당한 채권의 「변제 수령」과 「위탁금 임의 상계」의 구별.",
+ intent:"「회사 돈으로 자기 채권 변제 = 당연히 횡령」이라는 직관을 노림. 정당한 채권의 변제는 회사의 채무 이행일 뿐 영득이 아니다."},
+{id:"T3",src:"242번 ①",exam:"15 경찰승진",type:"결론 뒤집기",
+ stem:"포주가 윤락녀와 사이에 윤락녀가 받은 화대를 포주가 보관하였다가 분배하기로 약정하고도 보관 중인 화대를 임의로 소비한 경우, 횡령죄가 {{BLANK}}.",
+ wrong:"성립하지 않는다 (불법원인급여이므로)",right:"성립한다 (화대의 소유권이 여전히 윤락녀에게 속하므로)",
+ conclusion:"포주의 불법성이 윤락녀의 불법성보다 현저히 크므로 화대의 소유권은 여전히 윤락녀에게 속한다 → 횡령죄 성립.",
+ basis:"대법원 1999. 9. 17. 98도2036 (인천 학익동 포주사건)",srcProbs:[242],
+ related:"뇌물 전달금(86도628)·범죄수익 CD(2017도9254)·사기범행 수표(2016도18035)는 모두 불법원인급여로 횡령 X — 이 사건만 예외.",
+ intent:"「불법원인급여 = 횡령 X」 공식을 기계적으로 적용하게 유도. 수익자의 불법성이 현저히 큰 경우(민법 §746 단서 취지)라는 예외 사안."},
+{id:"T4",src:"243번 ①",exam:"22 경찰채용",type:"개념 스왑",
+ stem:"횡령죄의 본질에 관한 학설 중 {{BLANK}}에 따르면 본죄가 성립하기 위하여는 불법영득의사가 있어야 한다.",
+ wrong:"월권행위설",right:"영득행위설",
+ conclusion:"월권행위설은 월권행위만 있으면 영득행위를 하지 않더라도 횡령죄가 성립한다고 보므로 불법영득의사를 필요로 하지 않는다. 불법영득의사를 요하는 것은 영득행위설.",
+ basis:"학설 정리 (갓대환 해설 기준)",srcProbs:[243,263],
+ related:"263번 ㉣ — 이번엔 월권행위설의 「정의」를 영득행위설의 것으로 바꿔치기한 변주.",
+ intent:"학설 이름과 요건의 짝을 교차시키는 전형적 개념 스왑. 「월권 = 권한 초과만으로 성립 → 영득의사 불요」로 기억."},
+{id:"T5",src:"243번 ③",exam:"22 경찰채용",type:"기준 바꿔치기",
+ stem:"소유권의 취득에 등록이 필요한 차량에 대한 횡령죄에서 타인의 재물을 보관하는 사람의 지위는 {{BLANK}}에 따라 결정된다.",
+ wrong:"등록에 의하여 차량을 제3자에게 법률상 유효하게 처분할 수 있는 권능의 유무",right:"인도받아 보관하는 자의 사실상 처분 가능 여부 (등록명의자일 필요 없음)",
+ conclusion:"등록이 필요한 타인 소유 차량을 인도받아 보관하고 있는 사람이 이를 사실상 처분하면 횡령죄가 성립하며, 그 보관 위임자나 보관자가 차량의 등록명의자일 필요는 없다.",
+ basis:"대법원 2015. 6. 25. 2015도1944 전합 (지입차량 무단처분 사건)",srcProbs:[243,246,249,252,255,256],
+ related:"부동산 횡령은 정반대 — 점유가 아니라 「제3자에게 유효하게 처분할 수 있는 권능」 기준(2000도565).",
+ intent:"부동산의 보관자 기준(법률상 처분권능)을 차량에 이식한 함정. 「차량 = 사실상 처분 / 부동산 = 법률상 권능」으로 교차 암기."},
+{id:"T6",src:"243번 ④",exam:"22 경찰채용",type:"개념 스왑",
+ stem:"횡령죄는 타인의 재물에 관한 소유권 등 본권을 그 보호법익으로 하는 범죄로서, 이른바 {{BLANK}}이다.",
+ wrong:"본권 침해의 결과가 발생하였을 때 성립하는 침해범",right:"본권이 침해될 위험성이 있으면 침해의 결과가 발생하지 않더라도 성립하는 위태범",
+ conclusion:"횡령죄는 위태범 — 본권이 침해될 위험성이 있으면 그 침해의 결과가 발생되지 아니하더라도 성립한다.",
+ basis:"대법원 2009. 2. 12. 2008도10971 (쇼트기 사건)",srcProbs:[243,262],
+ related:"262번 ⑤ — 같은 법리를 「담보제공행위가 사법상 무효이면 불성립」이라는 사례형으로 비튼 변주.",
+ intent:"「침해범」이라는 단어가 보호법익 서술과 자연스럽게 이어져 그럴듯하게 읽히도록 설계된 함정."},
+{id:"T7",src:"244번 ③",exam:"20 경찰채용",type:"결론 뒤집기",
+ stem:"보관자의 지위에 있는 공동명의의 예금채권자가, 피해자 조합원들이 제기한 소송으로 조합이 입게 될 손해에 대한 구상금 채권의 집행 확보를 위하여 피해자 조합원들에 대하여 예금계좌에 초과로 입금된 개발부담금의 반환을 거부한 경우, {{BLANK}}.",
+ wrong:"불법영득의사가 인정되어 횡령죄가 성립한다",right:"개발부담금을 영득하기 위한 것으로 볼 수 없어 횡령죄가 성립하지 않는다",
+ conclusion:"「반환의 거부」가 횡령이 되려면 반환거부의 이유·주관적 의사 등을 종합하여 반환거부행위가 횡령행위와 같다고 볼 수 있을 정도이어야 한다. 구상금채권의 집행 확보를 위한 거부는 영득 의사가 아니다.",
+ basis:"대법원 2008. 12. 11. 2008도8279",srcProbs:[244],
+ related:"착오송금 임의상계 사건(2021도2088) — 상계 의사를 밝힌 반환거부도 불법영득의사 단정 불가로 횡령 X.",
+ intent:"「반환 거부 = 곧 횡령」이라는 단순화를 유도. 반환거부는 그 자체가 아니라 영득의사의 징표일 때만 횡령이 된다."},
+{id:"T8",src:"245번 ㉡",exam:"21 경찰채용",type:"범위 왜곡",
+ stem:"전기통신금융사기의 {{BLANK}} 계좌명의인이 개설한 예금계좌로 피해자가 송금·이체한 사기피해금을 계좌명의인이 영득할 의사로 인출하면, 피해자에 대한 횡령죄가 성립한다.",
+ wrong:"공범인",right:"공범이 아닌",
+ conclusion:"공범인 계좌명의인은 자신이 가담한 범행의 결과 피해금을 보관하게 된 것일 뿐 피해자와 위탁관계가 없고, 인출은 사기범행의 실행행위에 지나지 않아 별도의 횡령죄가 성립하지 않는다. 공범이 아닌 계좌명의인의 인출만 피해자에 대한 횡령죄.",
+ basis:"대법원 2017. 5. 31. 2017도3045 (보이스피싱 사건Ⅰ) / 2018. 7. 19. 2017도17494 전합 (보이스피싱 사건Ⅲ)",srcProbs:[245,248,256,258],
+ related:"접근매체를 양도하여 방조한 종범이 인출한 경우에도 마찬가지로 횡령 X (2017도3045).",
+ intent:"「공범인」이라는 단 한 단어로 결론이 뒤집히는 지문. 긴 문장 속 조건어 하나를 스캔하지 못하면 틀리도록 설계."},
+{id:"T9",src:"246번 ①",exam:"17 경찰간부",type:"결론 뒤집기",
+ stem:"소유권 취득에 등록이 필요한 다른 사람 소유 차량을 인도받아 보관하고 있는 사람이 이를 사실상 처분한 경우, 보관위임자나 보관자가 차량의 등록명의자가 아니라면 횡령죄가 {{BLANK}}.",
+ wrong:"성립하지 않는다",right:"성립한다 (등록명의자일 필요가 없으므로)",
+ conclusion:"보관 위임자나 보관자가 차량의 등록명의자일 필요는 없다. 지입차주로부터 보관을 위임받은 사람이 지입차주 승낙 없이 처분한 경우에도 성립(쌍방향 모두 O).",
+ basis:"대법원 2015. 6. 25. 2015도1944 전합",srcProbs:[243,246,249,252,255,256],
+ related:"차량 5회 반복 출제 법리 — 243·246·249·252·255·256번에서 매번 문구를 바꿔 재출제.",
+ intent:"「등록 = 소유권 취득 요건」이라는 민사 법리를 형법상 보관자 지위 요건으로 그대로 끌고 오게 만드는 함정."},
+{id:"T10",src:"247번 ㉢",exam:"15 경찰간부",type:"개념 스왑",
+ stem:"{{BLANK}}은 재물에 해당하므로 횡령죄의 객체가 될 수 있다.",
+ wrong:"자본의 구성단위 또는 주주권을 의미하는 주식(株式)",right:"유가증권인 주권(株券)",
+ conclusion:"주권(株券)은 유가증권으로서 재물에 해당하여 횡령죄의 객체가 될 수 있으나, 주식(株式)은 재물이 아니므로 객체가 될 수 없다. 원문 지문은 이 둘을 완전히 교차시켰다.",
+ basis:"대법원 2005. 2. 18. 2002도2822 (주식수 변조사건)",srcProbs:[247],
+ related:"횡령죄의 객체는 「재물」에 한정 — 사무적으로 관리 가능한 채권 등 권리도 재물에 포함되지 않음(2011도832 전자외상매출채권 사건).",
+ intent:"주권 = 종이(재물) / 주식 = 권리(비재물). 한자 한 글자 스왑으로도 문장이 자연스럽게 읽히는 전형적 개념 스왑."},
+{id:"T11",src:"248번 ㉠",exam:"20 경찰채용",type:"범위 왜곡",
+ stem:"전기통신금융사기 범행에 이용되는 것을 알고 예금통장을 양도한 甲이, 양도된 예금계좌로 피해자가 송금·이체한 사기피해금을 영득할 의사로 임의로 인출하였다면 {{BLANK}}.",
+ wrong:"전기통신금융사기의 범인에 대한 횡령죄가 성립한다",right:"피해자에 대하여도, 범인에 대하여도 횡령죄가 성립하지 않는다",
+ conclusion:"접근매체를 양도하여 사기범행을 방조한 종범의 인출은 자신이 가담한 사기범행의 실행행위에 지나지 않아 피해자에 대한 횡령죄를 구성하지 않고, 계좌 내 피해금이 범인의 재물도 아니므로 범인에 대한 횡령죄는 더더욱 성립할 수 없다.",
+ basis:"대법원 2017. 5. 31. 2017도3045 (보이스피싱 사건Ⅰ)",srcProbs:[245,248],
+ related:"공범 아닌 계좌명의인의 인출 → 피해자에 대한 횡령 O (2017도17494 전합).",
+ intent:"피해자↔범인으로 「누구에 대한」 횡령인지 대상을 바꿔치기한 이중 함정. 죄의 상대방 특정 훈련용."},
+{id:"T12",src:"248번 ㉡",exam:"20 경찰채용",type:"결론 뒤집기",
+ stem:"甲이 乙로부터 수표를 현금으로 교환해 주면 대가를 주겠다는 제안을 받고, 위 수표가 丙 등이 사기범행으로 취득한 것임을 잘 알면서도 교부받아 일부를 현금으로 교환한 후 丁과 공모하여 아직 교환하지 못한 수표와 교환된 현금을 임의로 사용한 경우, 횡령죄가 {{BLANK}}.",
+ wrong:"성립한다",right:"성립하지 않는다 (불법원인급여물로서 소유권이 甲에게 귀속되므로)",
+ conclusion:"甲이 교부받은 수표는 불법의 원인으로 급여한 물건에 해당하여 그 소유권이 甲에게 귀속되므로 횡령죄가 성립하지 않는다.",
+ basis:"대법원 2017. 4. 26. 2016도18035 (범죄수익 수표 임의소비사건)",srcProbs:[248],
+ related:"범죄수익 무기명 CD 사건(2017도9254)과 동일 구조 / 포주사건(98도2036)만 예외적으로 횡령 O.",
+ intent:"「남의 범죄수익을 마음대로 썼으니 당연히 죄」라는 직관을 이용. 불법원인급여의 소유권 귀속 효과가 핵심."},
+{id:"T13",src:"249번 ②",exam:"25 경찰채용",type:"기준 바꿔치기",
+ stem:"甲이 A로부터 A 소유의 차량을 인도받아 사용하고 있는데, 당사자 사이에서 소유권을 등록명의자가 아닌 甲이 보유하기로 약정하였다는 등의 특별한 사정이 있는 경우, A가 甲에게 차량의 반환을 요구하였음에도 甲이 이를 거부하였다면 횡령죄가 {{BLANK}}.",
+ wrong:"성립한다 (대외적 관계에서는 여전히 A가 소유권을 보유하므로)",right:"성립하지 않는다 (내부관계에서는 甲이 소유권을 보유하므로)",
+ conclusion:"당사자 사이에 소유권을 등록명의자 아닌 자가 보유하기로 약정하였다는 등의 특별한 사정이 있는 경우, 그 내부관계에 있어서는 등록명의자 아닌 자가 소유권을 보유하게 된다 → 반환을 거부하더라도 횡령죄 불성립.",
+ basis:"대법원 2023. 6. 1. 2023도1096 (차량매수인 반환거부 사건)",srcProbs:[249],
+ related:"자동차 소유권의 득실변경은 등록이 원칙이나, 당사자 간 특약이 있으면 내부관계에서는 예외가 인정되는 최신 판례.",
+ intent:"횡령죄 성부는 당사자 간 「내부관계」 기준인데 「대외적 관계」 논리를 끼워 넣은 2023년 최신 판례 함정."},
+{id:"T14",src:"250번 ③",exam:"16 경찰간부",type:"결론 뒤집기",
+ stem:"근로자가 운송회사로부터 일정액의 급여를 받으면서 당일 운송수입금을 전부 운송회사에 납입하되, 운송회사는 이를 월 단위로 정산하기로 하는 약정이 체결된 경우, 근로자가 운송수입금을 임의로 소비하였다면 횡령죄로 {{BLANK}}.",
+ wrong:"처벌할 수 없다",right:"처벌할 수 있다",
+ conclusion:"근로자가 애초 거둔 운송수입금 전액은 운송회사의 관리와 지배 아래 있다고 봄이 상당하므로 임의 소비는 횡령죄를 구성한다. 사납금 초과 수입금 일부를 배분받을 권리가 있더라도 다를 바 없다.",
+ basis:"대법원 2014. 4. 30. 2013도8799 (택시기사 수입금 횡령사건)",srcProbs:[246,250],
+ related:"246번 ②에서는 같은 법리가 [O] 지문으로 출제 — 「배분받을 권리가 있어도 마찬가지」라는 꼬리까지 세트로 기억.",
+ intent:"「월 정산 약정이 있으니 정산 전에는 근로자 돈」이라는 논리를 유도. 수입금 전액이 처음부터 회사 지배하에 있다는 점이 핵심."},
+{id:"T15",src:"251번 ④",exam:"22 국가9급",type:"결론 뒤집기",
+ stem:"주식회사는 주주와 독립된 별개의 권리주체로서 이해가 반드시 일치하는 것은 아니므로, 주주나 대표이사 등이 회사 소유 재산을 제3자의 자금 조달을 위하여 담보로 제공하는 등 사적인 용도로 임의 처분하였고 그 처분에 관하여 주주총회나 이사회의 결의가 있었던 경우에는 횡령죄의 죄책을 {{BLANK}}.",
+ wrong:"면할 수 있다",right:"면할 수 없다",
+ conclusion:"결의가 있었는지 여부와는 관계없이 횡령죄의 죄책을 면할 수 없다.",
+ basis:"대법원 2011. 3. 24. 2010도17396 (코디콤 사건)",srcProbs:[240,251],
+ related:"240번 ③과 동일 법리의 문구 변주 — 이 지문은 판례 원문의 전제부(별개의 권리주체)를 그대로 살려 더 정교하다.",
+ intent:"판례 원문 전제부를 그대로 실어 신뢰감을 준 뒤 결론만 뒤집은 변주. 전제를 읽고 안심하는 순간 당한다."},
+{id:"T16",src:"252번 ②",exam:"18 법원9급",type:"기준 바꿔치기",
+ stem:"소유권의 취득에 등록이 필요한 차량에 대한 횡령죄에서, 차량의 등록명의자가 아닌 사람은 타인의 재물을 보관하는 자에 {{BLANK}}.",
+ wrong:"해당하지 않는다 (법률상 유효하게 처분할 수 있는 권한이 없으므로)",right:"해당할 수 있다 (등록명의자일 필요가 없으므로)",
+ conclusion:"인도받아 보관 중인 차량을 사실상 처분하면 횡령죄가 성립하고, 보관 위임자나 보관자가 등록명의자일 필요는 없다.",
+ basis:"대법원 2015. 6. 25. 2015도1944 전합",srcProbs:[243,246,249,252,255,256],
+ related:"동일 법리 5연속 변주 중 세 번째 — 결론부를 「등록명의자 아닌 자 = 보관자 아님」으로 단정한 형태.",
+ intent:"판결문 앞부분처럼 논증 형식을 갖춘 뒤 폐기된 기준으로 결론을 내리는 함정."},
+{id:"T17",src:"253번 ①",exam:"24 해경간부",type:"기준 바꿔치기",
+ stem:"부동산매매 소개인이 매매잔대금조로 교부받아 보관하던 약속어음을 현금으로 할인한 자체가 불법영득의사의 실현인 경우, 횡령액은 {{BLANK}}으로 보아야 한다.",
+ wrong:"어음을 할인한 현금액",right:"횡령한 약속어음의 액면금 상당액",
+ conclusion:"횡령액은 어음을 할인한 현금액이 아니라 횡령한 약속어음의 액면금 상당액이다.",
+ basis:"대법원 1983. 11. 8. 83도2346 (약속어음 21매 횡령사건)",srcProbs:[253],
+ related:"횡령 이득액 산정 세트 — 근저당 설정 방식 횡령의 이득액은 피담보채무액 내지 채권최고액(2013도2857).",
+ intent:"「실제로 손에 쥔 돈(할인 현금액)이 횡령액」이라는 경제적 직관을 노림. 횡령의 객체는 어음 그 자체이므로 액면금 기준."},
+{id:"T18",src:"255번 ㉠",exam:"21 국가7급",type:"범위 왜곡",
+ stem:"지입회사에서 운행관리권을 위임받은 지입차주가 지입회사의 승낙 없이 보관 중인 차량을 사실상 처분하면 횡령죄가 성립하고, 지입차주에게서 차량 보관을 위임받은 사람이 지입차주의 승낙 없이 보관 중인 차량을 사실상 처분한 경우에는 횡령죄가 {{BLANK}}.",
+ wrong:"성립하지 않는다 (타인의 재물을 보관한 자로 볼 수 없으므로)",right:"성립한다 (역시 타인의 재물을 보관한 자이므로)",
+ conclusion:"지입차주로부터 차량 보관을 위임받은 사람이 지입차주의 승낙 없이 보관 중인 차량을 사실상 처분한 경우에도 횡령죄가 성립한다 — 양방향 모두 성립.",
+ basis:"대법원 2015. 6. 25. 2015도1944 전합",srcProbs:[243,246,249,252,255,256],
+ related:"",
+ intent:"전단(지입차주)은 맞게 두고 후단(재위임받은 자)만 뒤집는 반쪽 왜곡 — 긴 병렬문 후단에서 집중력이 떨어지는 지점을 정확히 공략."},
+{id:"T19",src:"255번 ㉣",exam:"21 국가7급",type:"개념 스왑",
+ stem:"채권의 담보를 목적으로 부동산의 소유권이전등기를 마친 양도담보권자인 채권자 甲이 목적물을 점유하다가 임의로 그 변제기일 이전에 제3자에게 근저당권을 경료하여 준 경우, {{BLANK}}가 성립한다.",
+ wrong:"횡령죄",right:"배임죄",
+ conclusion:"채권자는 변제기까지 채무자의 변제가 없더라도 채무자에게 소유명의를 환원하여 주기 위해 소유권이전등기를 이행할 의무가 있으므로, 변제기 이전에 제3자에게 근저당권을 경료하여 주었다면 배임죄가 성립한다. 등기명의가 채권자 앞으로 되어 있어 「타인의 재물」 보관 구조가 아니다.",
+ basis:"대법원 1995. 5. 12. 95도283",srcProbs:[255],
+ related:"동산 양도담보를 채권자가 합의로 점유·보관하던 중 변제기 전에 처분 → 횡령죄(88도906 양도담보 포목 사건). 부동산(등기 이전)↔동산(소유권 유보)에서 죄명이 갈린다.",
+ intent:"횡령↔배임 스왑의 대표 사안. 「남의 부동산을 멋대로 처분 = 횡령」이라는 직관과 달리, 등기가 채권자 앞으로 되어 있어 배임."},
+{id:"T20",src:"256번 ①",exam:"22 법원9급",type:"폐기 판례",
+ stem:"건설기계등록원부에의 등록을 소유권 취득 요건으로 하는 화물자동차에 관하여, 지입차주로부터 그 자동차에 관한 관리·운영권만을 위임받아 이를 점유하여 온 자가 그 차량을 사실상 처분한 경우, 그는 타인의 재물을 보관하는 자에 {{BLANK}}.",
+ wrong:"해당하지 않는다 (법률상 처분할 수 있는 지위에 있지 않으므로)",right:"해당한다 (인도받아 보관하며 사실상 처분할 수 있으면 족하므로)",
+ conclusion:"2015년 전원합의체 판결에 따라, 등록 필요 차량을 인도받아 보관하는 사람이 사실상 처분하면 횡령죄가 성립하고 등록명의자일 필요가 없다. 지문과 같은 취지의 종전 판례 법리는 유지될 수 없다.",
+ basis:"대법원 2015. 6. 25. 2015도1944 전합",srcProbs:[243,246,249,252,255,256],
+ related:"",
+ intent:"2015년 전합 이전 구 판례의 논증을 원문 그대로 실은 지문. 옛 기본서·구판 요약노트로 공부한 수험생을 정확히 겨냥한 폐기 판례 함정."},
+{id:"T21",src:"257번 ①",exam:"17 법원행시",type:"기준 바꿔치기",
+ stem:"A가 B로부터 금전을 보관해 달라는 부탁과 함께 A명의로 된 은행계좌로 송금받은 경우, A는 위 금전에 대한 보관자의 지위에 {{BLANK}}.",
+ wrong:"있다고 할 수 없다 (현금이라는 실물을 점유하지 않고 은행에 대한 예금청구권만을 가지므로)",right:"있다 (위탁받은 금전을 금융기관에 예치한 경우에도 보관자의 지위를 가지므로)",
+ conclusion:"횡령죄의 보관은 사실상·법률상 지배로 족하고, 타인의 금전을 위탁받아 보관하는 자가 보관방법으로 이를 은행 등 금융기관에 예치한 경우에도 보관자의 지위를 가진다.",
+ basis:"대법원 2015. 2. 12. 2014도11244",srcProbs:[257],
+ related:"보관 = 사실상 또는 법률상 지배 — 예금은 법률상 지배의 대표례.",
+ intent:"보관을 「물리적 점유」로 좁히는 함정. 예금청구권 논리가 그럴듯하게 들리지만 법률상 지배로 충분하다."},
+{id:"T22",src:"257번 ②",exam:"17 법원행시",type:"범위 왜곡",
+ stem:"C가 D명의 계좌에 착오로 잘못 송금한 돈의 경우, D는 위 돈에 대한 보관자의 지위에 {{BLANK}}.",
+ wrong:"있다고 할 수 없다 (C의 위탁행위가 없으므로)",right:"있다 (신의칙상 보관관계가 성립하므로)",
+ conclusion:"착오로 송금되어 입금된 경우 예금주와 송금인 사이에 신의칙상 보관관계가 성립한다 → 임의로 인출·소비하면 횡령죄. 송금인과 별다른 거래관계가 없어도 마찬가지.",
+ basis:"대법원 2010. 12. 9. 2010도891 (300만달러 송금착오사건)",srcProbs:[241,257],
+ related:"착오송금에서 상계 의사를 밝힌 정산·반환거부는 횡령 X(2021도2088) — 단순 인출·소비(횡령 O)와 짝으로 구별.",
+ intent:"위탁관계의 발생 근거를 「위탁행위(계약)」로 좁히는 함정. 사무관리·관습·조리·신의칙로도 성립한다는 확장이 포인트."},
+{id:"T23",src:"257번 ④",exam:"17 법원행시",type:"폐기 판례",
+ stem:"명의신탁자가 매수한 부동산을 명의신탁약정에 따라 매도인에게서 바로 명의수탁자 명의로 소유권이전등기를 마친 이른바 중간생략등기형 명의신탁에서, 명의수탁자가 그 부동산을 임의로 처분하면 명의신탁자에 대한 관계에서 횡령죄가 {{BLANK}}.",
+ wrong:"성립한다",right:"성립하지 않는다",
+ conclusion:"명의수탁자는 신탁부동산의 소유권을 가지지 아니하고(소유권은 매도인 보유) 명의신탁자와의 위탁신임관계도 인정되지 않아 「타인의 재물을 보관하는 자」가 아니다 → 횡령죄 불성립.",
+ basis:"대법원 2016. 5. 19. 2014도6992 전합 (중간생략등기형 명의신탁 사건Ⅰ)",srcProbs:[257,264],
+ related:"양자간(2016도18761 전합)·계약명의신탁(2010도10515)까지 — 현재 명의신탁 세 유형 모두 수탁자 임의처분에 횡령 X.",
+ intent:"2016년 판례변경 이전의 성립설이 오래 통용됐던 논점. 「판례가 바뀐 자리」가 곧 출제 포인트다."},
+{id:"T24",src:"257번 ⑤",exam:"17 법원행시",type:"결론 뒤집기",
+ stem:"부동산을 공동으로 상속한 상속인들이 공동으로 상속등기를 경료한 후, 상속인 중 1인이 부동산을 단독으로 점유하던 중 다른 공동상속인들의 승낙 없이 위 부동산 전체를 임의로 처분한 경우, 횡령죄가 {{BLANK}}.",
+ wrong:"성립한다 (단독 점유 중인 보관자이므로)",right:"성립하지 않는다 (다른 상속인 지분에 대한 처분권능이 없으므로)",
+ conclusion:"부동산 횡령의 보관자 지위는 점유 여부가 아니라 제3자에게 유효하게 처분할 수 있는 권능의 유무로 결정 → 공동상속인 1인은 다른 상속인의 상속지분에 대한 처분권능이 없어 횡령죄 불성립.",
+ basis:"대법원 2000. 4. 11. 2000도565 (계모 상속재산 매도사건)",srcProbs:[245,257],
+ related:"공유자 1인의 타 공유자 지분 처분도 동일하게 횡령 X(2003도6988). 단, 공유물 「매각대금」 임의소비는 횡령 O(80도1161).",
+ intent:"「점유하고 있었으니 보관자」라는 직관을 차단하는 훈련. 부동산 보관자 기준 = 점유가 아니라 법률상 처분권능."},
+{id:"T25",src:"258번 ①",exam:"20 경찰승진",type:"기준 바꿔치기",
+ stem:"피고인이 근저당권설정등기를 마치는 방법으로 부동산을 횡령하여 취득한 구체적인 이득액은 {{BLANK}}이다.",
+ wrong:"부동산의 시가 상당액에서 범행 전에 설정된 피담보채무액을 공제한 잔액",right:"부동산을 담보로 제공한 피담보채무액 내지 그 채권최고액",
+ conclusion:"근저당권설정 방식 횡령의 이득액은 시가에서 기존 피담보채무액을 공제한 잔액이 아니라, 부동산을 담보로 제공한 피담보채무액 내지 그 채권최고액이다.",
+ basis:"대법원 2013. 5. 9. 2013도2857",srcProbs:[258],
+ related:"약속어음 횡령액 = 액면금 상당액(83도2346)과 함께 「횡령액 산정」 세트.",
+ intent:"「시가 − 기존 담보 = 남은 가치」라는 그럴듯한 산식을 제시. 근저당 설정형 횡령은 새로 설정한 담보 부담만큼만 영득한 것."},
+{id:"T26",src:"258번 ③",exam:"20 경찰승진",type:"결론 뒤집기",
+ stem:"A주식회사 대표이사 甲이 자신의 채권자 B에게 차용금 담보로 회사 명의의 정기예금에 질권을 설정하여 준 후, B가 甲의 동의하에 그 정기예금 계좌의 회사 자금을 전액 인출하였다면, 甲의 예금인출 동의행위는 {{BLANK}}.",
+ wrong:"업무상횡령죄에 해당한다",right:"질권설정행위의 사후조치에 불과하여 별도의 횡령죄를 구성하지 않는다",
+ conclusion:"이미 배임행위로써 이루어진 질권설정행위의 사후조치에 불과하여 새로운 법익 침해를 수반하지 않는 불가벌적 사후행위에 해당한다.",
+ basis:"대법원 2012. 11. 29. 2012도10980 (예금통장 질권 사건)",srcProbs:[258,260,265],
+ related:"민법 §353 — 질권자는 질권의 목적인 채권을 직접 청구할 수 있음(동의가 없더라도 실현 가능했던 위험).",
+ intent:"질권설정(배임)과 인출동의(횡령처럼 보임)를 별개 행위로 쪼개어 보게 만드는 죄수론 함정."},
+{id:"T27",src:"258번 ④",exam:"20 경찰승진",type:"범위 왜곡",
+ stem:"제3자 명의의 사기이용계좌(이른바 대포통장)의 계좌명의인이 영득의 의사로 전기통신금융사기 피해금을 인출한 경우, 피해자에 대한 횡령죄는 {{BLANK}}.",
+ wrong:"계좌명의인이 사기 범행의 공범인지 여부와 상관없이 성립하지 않는다",right:"계좌명의인이 사기 범행의 공범이 아닌 경우에 성립한다",
+ conclusion:"공범이 아니라면 계좌명의인은 피해자를 위하여 사기피해금을 보관하는 지위에 있어 영득 의사로 인출하면 피해자에 대한 횡령죄가 성립한다. 공범이라면 위탁관계가 없어 불성립 — 공범 여부에 따라 결론이 갈린다.",
+ basis:"대법원 2018. 7. 19. 2017도17494 전합 (보이스피싱 사건Ⅲ)",srcProbs:[245,248,256,258],
+ related:"",
+ intent:"「상관없이」라는 부사 하나로 공범 여부의 조건 분기를 지워버린 범위 왜곡. 결론이 조건부인 판례일수록 이 수법에 취약하다."},
+{id:"T28",src:"259번 ⑤",exam:"22 법원행시",type:"범위 왜곡",
+ stem:"분쟁에 대한 실질적인 이해관계는 단체에 있으나 법적인 이유로 그 대표자의 지위에 있는 개인이 소송 기타 법적 절차의 당사자가 된 경우, 단체의 비용으로 변호사 선임료를 {{BLANK}}.",
+ wrong:"지출할 수는 없다",right:"당해 분쟁이 단체와 업무적 관련이 깊고 특별한 필요성이 있는 경우에는 지출할 수 있다",
+ conclusion:"원칙적으로는 단체 자체가 소송당사자가 된 경우에 한하나, 예외적으로 분쟁이 단체와 업무적인 관련이 깊고 단체의 이익을 위하여 소송을 수행하거나 고소에 대응하여야 할 특별한 필요성이 있는 경우에는 단체 비용으로 변호사 선임료를 지출할 수 있다.",
+ basis:"대법원 2013. 6. 13. 2011도524 (신준호 푸르밀 회장사건)",srcProbs:[259],
+ related:"코리아휠 사건(2007도9679) — 개인의 경영권 방어 목적 소송비용은 지출 불가 → 업무상횡령 O. 원칙-예외의 짝 사안.",
+ intent:"원칙(단체 당사자 사건만 지출 가능)은 살리고 예외만 삭제하여 단정한 지문. 「따라서」로 이어지는 후단이 함정이다."},
+{id:"T29",src:"260번 ㉡",exam:"13 사법시험",type:"결론 뒤집기",
+ stem:"A주식회사 대표이사 甲이 자신의 채권자 乙에게 차용금 담보로 A주식회사 명의의 정기예금에 질권을 설정하여 주었는데, 그 후 乙이 甲의 동의하에 그 계좌의 회사 자금을 전액 인출하였다면, 甲의 예금인출 동의행위는 업무상배임죄의 {{BLANK}}.",
+ wrong:"불가벌적 사후행위가 아니라 업무상횡령죄에 해당한다",right:"불가벌적 사후행위로서 별도의 횡령죄를 구성하지 않는다",
+ conclusion:"질권설정행위(배임)의 사후조치에 불과하여 새로운 법익 침해를 수반하지 않는 불가벌적 사후행위 → 별도의 횡령죄 불성립.",
+ basis:"대법원 2012. 11. 29. 2012도10980 (예금통장 질권 사건)",srcProbs:[258,260,265],
+ related:"대비: 횡령한 부동산에 「새로운 위험」을 추가하는 후행 처분(근저당 후 매각)은 별도 횡령죄 O(2010도10500 전합).",
+ intent:"「불가벌적 사후행위가 아니라」라고 명시적으로 부정해 주는 척하며 뒤집은 변주 — 258번 ③보다 한 단계 노골적."},
+{id:"T30",src:"260번 ㉣",exam:"13 사법시험",type:"결론 뒤집기",
+ stem:"甲과 乙이 부동산을 공유하던 중 甲이 乙의 지분을 임의로 처분하였다면, 횡령죄가 {{BLANK}}.",
+ wrong:"성립한다 (타인의 재물을 보관하는 자가 신임관계에 반하여 처분한 것이므로)",right:"성립하지 않는다 (다른 공유자의 지분에 대한 처분권능이 없으므로)",
+ conclusion:"부동산의 공유자 중 1인이 다른 공유자의 지분을 임의로 처분하거나 임대하여도 그에게는 처분권능이 없어 횡령죄가 성립하지 아니한다.",
+ basis:"대법원 2004. 5. 27. 2003도6988 (주차장 무단처분 사건)",srcProbs:[260],
+ related:"공유물 「매각대금」의 임의소비는 횡령 O(80도1161) — 「지분 처분(X) vs 매각대금 소비(O)」 짝으로 암기.",
+ intent:"「공유 = 서로의 지분을 보관」이라는 직관 유도. 부동산 지분에는 처분권능이 없어 보관자가 아니지만, 돈으로 바뀌는 순간 보관자가 된다."},
+{id:"T31",src:"261번 ③",exam:"23 법원9급",type:"범위 왜곡",
+ stem:"부동산 명의신탁이 부동산실명법 시행 전에 이루어졌으나 같은 법이 정한 유예기간 이내에 실명등기를 하지 아니함으로써 물권변동이 무효로 된 후에 명의수탁자의 처분행위가 이루어진 경우, 수탁자는 신탁자에 대한 관계에서 「타인의 재물을 보관하는 자」의 지위에 {{BLANK}}.",
+ wrong:"여전히 있다고 보아야 한다",right:"이 경우에도 마찬가지로 있지 않다",
+ conclusion:"양자간 명의신탁에서 수탁자가 보관자 지위에 있지 않다는 법리는, 명의신탁이 실명법 시행 전에 이루어졌고 유예기간 내 실명등기를 하지 않아 무효로 된 후 처분행위가 이루어진 경우에도 마찬가지로 적용된다.",
+ basis:"대법원 2021. 2. 18. 2016도18761 전합 (양자간 명의신탁 사건)",srcProbs:[261],
+ related:"판례변경 법리의 시적 적용범위까지 확인한 판결 — 경과 사안이라고 예외가 되지 않는다.",
+ intent:"판례변경 법리의 적용범위를 좁혀 「경과 사안은 예외」처럼 보이게 하는 범위 왜곡."},
+{id:"T32",src:"262번 ⑤",exam:"12 법원행시",type:"결론 뒤집기",
+ stem:"다른 사람의 재물을 보관하는 사람이 그 사람의 동의 없이 함부로 이를 담보로 제공한 경우, 사법(私法)상 그 담보제공행위가 무효이거나 그 재물에 대한 소유권 침해의 결과가 발생하지 않았다면 횡령죄가 {{BLANK}}.",
+ wrong:"성립하지 않는다",right:"그 여부와 관계없이 성립한다",
+ conclusion:"횡령죄는 본권이 침해될 위험성이 있으면 침해 결과가 발생하지 않아도 성립하는 위태범 → 함부로 담보로 제공하는 행위는 불법영득의사를 표현하는 횡령행위로서, 담보제공행위의 사법상 무효 여부나 소유권 침해 결과 발생 여부에 관계없이 횡령죄를 구성한다.",
+ basis:"대법원 2009. 2. 12. 2008도10971 (쇼트기 사건)",srcProbs:[243,262],
+ related:"243번 ④(침해범↔위태범)와 같은 법리의 사례형 변주.",
+ intent:"「무효라서 소유권에 아무 일도 일어나지 않았는데?」라는 결과 중심 사고를 차단하는 위태범 적용 훈련."},
+{id:"T33",src:"263번 ㉠",exam:"23 경대편입",type:"결론 뒤집기",
+ stem:"甲이 범죄수익 등의 은닉을 위해 乙로부터 교부받은 무기명 양도성예금증서를 현금으로 교환하여 임의로 소비하였다면, 횡령죄가 {{BLANK}}.",
+ wrong:"성립한다",right:"성립하지 않는다 (불법원인급여로 소유권이 甲에게 귀속되므로)",
+ conclusion:"범죄수익 은닉을 위해 교부받은 무기명 양도성예금증서는 불법의 원인으로 급여한 물건 → 소유권이 甲에게 귀속되어 횡령죄 불성립.",
+ basis:"대법원 2017. 10. 26. 2017도9254 (범죄수익 무기명 양도성예금증서 사건)",srcProbs:[248,263],
+ related:"불법원인급여 3제: 뇌물 전달금(86도628)·범죄수익 CD·사기 수표(2016도18035) 모두 횡령 X / 포주사건(98도2036)만 예외 O.",
+ intent:"불법원인급여 계열에서 객체(수표→CD)만 바꿔 반복 출제되는 유형. 계열 자체를 묶어서 인식해야 한다."},
+{id:"T34",src:"263번 ㉡",exam:"23 경대편입",type:"결론 뒤집기",
+ stem:"회사의 대표이사가 자신이 당사자일 뿐만 아니라 자신의 경영권을 방어하기 위한 목적으로 신주를 발행하는 과정에서 저지른 배임행위에 대한 소송을 수행하면서, 그 변호사 비용을 회사의 자금으로 지급한 경우 횡령죄가 {{BLANK}}.",
+ wrong:"성립하지 않는다",right:"성립한다 (업무상횡령)",
+ conclusion:"법인이 형식적으로 소송당사자일 뿐 실질적 당사자가 따로 있고 소송 수행이 개인의 경영권 방어를 위한 것이라면 법인의 업무수행이라 볼 수 없어 법인 비용으로 선임료를 지출할 수 없다 → 업무상횡령죄의 죄책.",
+ basis:"대법원 2008. 6. 26. 2007도9679 (코리아휠 대표이사 사건)",srcProbs:[263],
+ related:"푸르밀 사건(2011도524) — 단체 이익을 위한 특별한 필요성이 있으면 지출 가능(횡령 X). 분기점은 「누구의 이익을 위한 소송인가」.",
+ intent:"259번 ⑤(지출 가능 예외)와 이 사안(지출 불가)을 교차시켜 헷갈리게 하는 짝 함정."},
+{id:"T35",src:"263번 ㉣",exam:"23 경대편입",type:"개념 스왑",
+ stem:"횡령죄의 본질에 관한 학설 중 월권행위설은 횡령의 의미를 {{BLANK}}이라고 본다.",
+ wrong:"위탁된 보관물에 대한 신뢰관계의 배신과 그 보관물을 불법하게 영득하는 것",right:"위탁된 보관물에 대한 권한을 초과하는 행위로 신임관계를 깨뜨리는 것",
+ conclusion:"월권행위설에 의할 때 횡령의 본질은 위탁된 보관물에 대한 권한을 초과하는 행위를 함으로써 신임관계를 깨뜨리는 것이며, 이 학설에 의하면 보관물을 불법하게 영득하려는 의사는 필요하지 않다.",
+ basis:"학설 정리 (갓대환 해설 기준)",srcProbs:[243,263],
+ related:"243번 ①이 「요건」(불법영득의사 필요 여부)을 스왑했다면, 이 지문은 「정의」를 스왑 — 같은 논점의 방향 전환 재출제.",
+ intent:"학설의 정의를 다른 학설의 것으로 바꿔치기. 정의와 요건이 세트로 어긋나는지 검산하는 습관이 필요하다."},
+{id:"T36",src:"263번 ㉤",exam:"23 경대편입",type:"범위 왜곡",
+ stem:"횡령죄에서 재물의 보관을 발생시키는 위탁관계는 {{BLANK}}.",
+ wrong:"반드시 사용대차·임대차·위임 등의 계약에 의하여 설정되어야 한다",right:"계약에 의할 필요 없이 사무관리·관습·조리·신의칙에 의해서도 성립할 수 있다",
+ conclusion:"위탁관계는 반드시 사용대차·임대차·위임 등의 계약에 의하여 설정될 것을 요하지 아니하고, 사무관리·관습·조리·신의칙 등에 의해서도 성립할 수 있다.",
+ basis:"대법원 2014. 2. 27. 2011도48",srcProbs:[243,263],
+ related:"원문 지문에는 함정이 하나 더 — 보관을 「법률상의 지배력」으로 한정(정답은 「사실상 또는 법률상 지배력」). 이중 함정 지문이었다.",
+ intent:"「반드시 ~하여야 한다」는 단정 어미가 나오면 예외·확장 법리를 의심하라는 신호."},
+{id:"T37",src:"264번 ①",exam:"18 경찰채용",type:"폐기 판례",
+ stem:"중간생략등기형 명의신탁에서, 신탁자 甲이 매매계약의 당사자로서 매도인 A에 대해 소유권이전등기청구권을 가지는 이상, 수탁자 乙은 甲을 위해 그의 부동산을 보관하는 자의 지위에 {{BLANK}}.",
+ wrong:"서게 된다",right:"서지 않는다",
+ conclusion:"수탁자 명의의 등기는 무효이고 소유권은 매도인이 그대로 보유 → 乙은 신탁부동산의 소유자도 아닌 甲의 재물을 보관하는 자가 아니며, 명의신탁약정에 기한 위탁신임관계는 형법상 보호할 가치가 없다.",
+ basis:"대법원 2016. 5. 19. 2014도6992 전합 (중간생략등기형 명의신탁 사건Ⅰ)",srcProbs:[257,264],
+ related:"",
+ intent:"「등기청구권을 가지는 이상」이라는 그럴듯한 민사적 논거가 미끼 — 판례변경 전 성립설의 논증 구조를 그대로 재현한 지문."},
+{id:"T38",src:"264번 ②",exam:"18 경찰채용",type:"결론 뒤집기",
+ stem:"중간생략등기형 명의신탁의 수탁자 乙이 신탁 부동산을 임의로 처분한 경우, 신탁자 甲에 대한 관계에서 횡령죄의 죄책을 {{BLANK}}.",
+ wrong:"지게 된다",right:"지지 않는다",
+ conclusion:"乙은 甲을 위해 부동산을 보관하는 자의 지위에 있지 않으므로 임의로 처분하였더라도 甲에 대한 관계에서 횡령죄의 죄책을 지지 않는다.",
+ basis:"대법원 2016. 5. 19. 2014도6992 전합",srcProbs:[257,264],
+ related:"같은 사안에서 乙이 매수인 丙에게 명의신탁 사실을 고지하지 않고 매도해도 丙에 대한 사기죄 역시 불성립(2006도4498 어머니 명의 매그너스 사건).",
+ intent:"①(보관자 지위)의 전제를 이어받는 연쇄 지문 — 전제가 무너지면 결론도 함께 무너진다."},
+{id:"T39",src:"264번 ④",exam:"18 경찰채용",type:"개념 스왑",
+ stem:"乙이 甲과 명의신탁약정을 맺고 직접 매매계약의 당사자가 되어 A로부터 부동산을 매수한 경우(계약명의신탁), 乙이 임의로 그 부동산을 처분한 행위는 {{BLANK}}.",
+ wrong:"甲의 사무를 처리하는 자의 지위에서 한 것이므로 배임죄에 해당한다",right:"배임죄에 해당하지 않는다 (타인의 사무를 처리하는 자가 아니므로)",
+ conclusion:"계약명의신탁의 수탁자는 신탁자를 위하여 신탁 부동산을 관리하거나 신탁자의 허락 없이 처분해서는 안 되는 의무를 부담하는 등 「타인의 사무를 처리하는 자」의 지위에 있다고 볼 수 없다 → 배임죄도 불성립 (매도인 선의·악의 불문).",
+ basis:"대법원 2008. 3. 27. 2008도455 (매도인 선의) / 2012. 11. 29. 2011도7361 (매도인 악의)",srcProbs:[264],
+ related:"계약명의신탁 = 횡령 X + 배임 X — 수탁자 임의처분이 무죄가 되는 유형.",
+ intent:"「횡령이 안 되면 배임이라도 되겠지」라는 보충 심리를 겨냥. 명의신탁 유형에서 배임죄 출구까지 차단됨을 확인하는 지문."},
+{id:"T40",src:"265번 ④",exam:"13 경찰채용",type:"결론 뒤집기",
+ stem:"甲회사 대표이사인 피고인이 채권자 乙에게 차용금 담보로 甲회사 명의의 정기예금에 질권을 설정하여 주었는데, 그 후 乙이 차용금과 정기예금의 변제기가 모두 도래한 이후 피고인의 동의하에 그 계좌의 회사 자금을 전액 인출하였다면, 배임죄와 별도로 횡령죄가 {{BLANK}}.",
+ wrong:"성립한다",right:"성립하지 않는다 (불가벌적 사후행위이므로)",
+ conclusion:"민법 §353에 의하면 질권자는 질권의 목적이 된 채권을 직접 청구할 수 있으므로, 예금인출 동의행위는 질권설정행위(배임)의 사후조치에 불과 → 불가벌적 사후행위로서 별도의 횡령죄를 구성하지 않는다.",
+ basis:"대법원 2012. 11. 29. 2012도10980 (예금통장 질권 사건)",srcProbs:[258,260,265],
+ related:"258번 ③·260번 ㉡의 세 번째 변주 — 이 지문만 「변제기 도래」 사실이 추가됨.",
+ intent:"「변제기 도래」라는 사실관계를 추가해 새 국면처럼 보이게 한 변주. 오히려 변제기 도래로 질권자의 직접청구권이 실현 가능해져 더더욱 새로운 위험이 없다."},
+{id:"T41",src:"266번 ①",exam:"18 국가9급",type:"결론 뒤집기",
+ stem:"부동산 입찰절차에서 甲·乙·丙이 대금을 분담하되 그중 1인인 甲 명의로 낙찰받기로 약정하고 낙찰을 받은 후, 甲이 그 부동산을 임의로 처분한 경우 甲에게 횡령죄가 {{BLANK}}.",
+ wrong:"성립한다 (乙·丙의 지분에 관하여 타인의 재물을 보관하는 자이므로)",right:"성립하지 않는다 (소유권은 대금 부담과 무관하게 명의인 甲이 취득하므로)",
+ conclusion:"입찰절차에서 낙찰인의 지위에 서게 되는 사람은 어디까지나 명의인이므로, 낙찰 부동산의 소유권은 경락대금을 실질적으로 부담한 자가 누구인가와 상관없이 명의인이 취득 → 타인의 재물이 아니어서 횡령죄 불성립.",
+ basis:"대법원 2000. 9. 8. 2000도258 (낙찰명의인 배신사건)",srcProbs:[266],
+ related:"명의신탁 유형들과 같은 결 — 「실질 소유자」라는 관념만으로는 형법상 보관자 지위가 생기지 않는다.",
+ intent:"「돈 낸 사람이 진짜 주인」이라는 실질 귀속 직관을 차단. 경매 낙찰의 소유권은 오로지 명의인에게 귀속된다."}
+];
+
+/* ─── 함정지문 훈련 로직 ─── */
+let trapStarted=false;
+let tPool=[],tIdx=0,tCorrect=0,tTotal=0,tAnswered=false,tSessionWrong=[],tOrder=null;
+
+const tTypeSel=document.getElementById('t-type-filter');
+[...new Set(TRAP_QUIZZES.map(q=>q.type))].forEach(t=>{const o=document.createElement('option');o.value=t;o.textContent=t;tTypeSel.appendChild(o);});
+
+function tGetPool(){
+  const type=tTypeSel.value,mode=document.getElementById('t-mode-filter').value;
+  return shuffle(TRAP_QUIZZES.filter(q=>{
+    if(type&&q.type!==type)return false;
+    if(mode==='wrong'&&!wrongIds.has(q.id))return false;
+    return true;
+  }));
+}
+function tStart(){
+  tPool=tGetPool();tIdx=0;tCorrect=0;tTotal=0;tAnswered=false;tSessionWrong=[];
+  if(tPool.length===0){document.getElementById('trap-area').innerHTML='<div class="empty">해당 조건의 문항이 없습니다.</div>';tUpdateProgress();return;}
+  tRender();
+}
+function tUpdateProgress(){
+  const done=tIdx<tPool.length?tIdx:tPool.length,tot=tPool.length;
+  document.getElementById('t-progress-fill').style.width=(tot?Math.round(done/tot*100):0)+'%';
+  document.getElementById('t-progress-label').textContent=done+' / '+tot;
+  document.getElementById('t-score-pill').textContent='정답 '+tCorrect+' / '+tTotal;
+}
+function tRender(){
+  tUpdateProgress();
+  if(tIdx>=tPool.length){tShowResult();return;}
+  const q=tPool[tIdx];tAnswered=false;
+  // 보기 순서 무작위: tOrder[i] = 화면 i번 버튼에 표시될 내용 (0=right, 1=wrong)
+  tOrder=Math.random()<0.5?[0,1]:[1,0];
+  const texts=tOrder.map(v=>v===0?q.right:q.wrong);
+  const stemHTML=q.stem.replace('{{BLANK}}','<span class="blank" id="t-blank">＿＿＿＿</span>');
+  document.getElementById('trap-area').innerHTML=
+  '<div class="card"><div class="meta-row">'+
+  '<span class="badge badge-trap">'+q.type+'</span>'+
+  '<span class="badge badge-src">출처 '+q.src+' · '+q.exam+'</span>'+
+  '<span class="qnum">Q'+(tIdx+1)+' / '+tPool.length+'</span></div>'+
+  '<p class="statement">'+stemHTML+'</p>'+
+  '<button class="choice-btn" id="t-btn-0" onclick="tChoose(0)"><span class="cnum">①</span>'+texts[0]+'</button>'+
+  '<button class="choice-btn" id="t-btn-1" onclick="tChoose(1)"><span class="cnum">②</span>'+texts[1]+'</button>'+
+  '<div id="t-feedback-area"></div></div>';
+}
+function tChoose(pos){
+  if(tAnswered)return;
+  tAnswered=true;tTotal++;
+  const q=tPool[tIdx];
+  const correctPos=tOrder.indexOf(0);
+  const isCorrect=(pos===correctPos);
+  if(isCorrect)tCorrect++;else{wrongIds.add(q.id);tSessionWrong.push(q);saveWrongIds();}
+  document.getElementById('t-btn-'+correctPos).classList.add('correct');
+  if(!isCorrect)document.getElementById('t-btn-'+pos).classList.add('selected-wrong');
+  const blank=document.getElementById('t-blank');
+  blank.textContent=q.right;blank.classList.add('filled');
+  const probs=q.srcProbs&&q.srcProbs.length?'<div class="fb-row"><span class="fb-label">이 함정이 출제된 문제</span>'+q.srcProbs.map(p=>p+'번').join(', ')+'</div>':'';
+  const rel=q.related?'<div class="fb-row"><span class="fb-label">관련 판례·짝 사안</span>'+q.related+'</div>':'';
+  document.getElementById('t-feedback-area').innerHTML=
+  '<div class="feedback '+(isCorrect?'feedback-correct':'feedback-wrong')+'" style="margin-top:4px">'+
+  '<p class="result-label">'+(isCorrect?'✓ 정답':'✗ 오답')+' — <span class="badge badge-trap" style="vertical-align:1px">'+q.type+'</span></p>'+
+  '<div class="fb-row"><span class="fb-label">판례 결론</span>'+q.conclusion+'</div>'+
+  '<div class="fb-row"><span class="fb-label">근거</span>'+q.basis+'</div>'+
+  probs+rel+
+  '<div class="fb-intent"><span class="fb-label">왜 헷갈리는가 — 출제 의도</span>'+q.intent+'</div>'+
+  '</div>'+
+  '<button class="next-btn" onclick="tNext()">'+(tIdx+1<tPool.length?'다음 문제 →':'결과 보기 →')+'</button>';
+  tUpdateProgress();
+}
+function tNext(){tIdx++;tRender();}
+function tShowResult(){
+  const pct=tTotal?Math.round(tCorrect/tTotal*100):0;
+  const trapWrongCount=[...wrongIds].filter(i=>typeof i==='string'&&i.charAt(0)==='T').length;
+  let wrongHTML='';
+  if(tSessionWrong.length){
+    wrongHTML='<div class="wrong-list"><h3>이번 오답 '+tSessionWrong.length+'문항</h3>';
+    tSessionWrong.forEach(q=>{wrongHTML+='<div class="wrong-item"><div class="wi-num">'+q.src+' · '+q.type+'</div><div class="wi-stmt">'+q.stem.replace('{{BLANK}}','<b>'+q.right+'</b>')+'</div></div>';});
+    wrongHTML+='</div>';
+  }
+  document.getElementById('trap-area').innerHTML=
+  '<div class="result-screen"><div class="big-score">'+pct+'%</div>'+
+  '<p class="sub">'+tCorrect+'문항 정답 / 전체 '+tTotal+'문항</p>'+
+  '<div class="stat-grid"><div class="stat-card"><div class="val" style="color:var(--green-text)">'+tCorrect+'</div><div class="lbl">정답</div></div>'+
+  '<div class="stat-card"><div class="val" style="color:var(--red-text)">'+(tTotal-tCorrect)+'</div><div class="lbl">오답</div></div>'+
+  '<div class="stat-card"><div class="val">'+trapWrongCount+'</div><div class="lbl">누적 오답</div></div></div>'+
+  '<div class="result-actions"><button onclick="document.getElementById(\'t-mode-filter\').value=\'wrong\';tStart()">오답만 다시 풀기</button>'+
+  '<button class="primary-btn" onclick="tStart()">처음부터 다시</button></div>'+wrongHTML+'</div>';
+  tUpdateProgress();
+}
+['t-type-filter','t-mode-filter'].forEach(id=>document.getElementById(id).addEventListener('change',tStart));
 </script>
 </body>
 </html>
